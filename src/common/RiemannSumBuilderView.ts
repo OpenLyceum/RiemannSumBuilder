@@ -1,4 +1,5 @@
-import { Multilink, NumberProperty } from "scenerystack/axon";
+import { Multilink, NumberProperty, Property } from "scenerystack/axon";
+import { Range } from "scenerystack/dot";
 import { localeProperty } from "scenerystack/joist";
 import { StringManager } from "../i18n/StringManager.js";
 import Colors from "../RiemannSumBuilderColors.js";
@@ -66,10 +67,23 @@ export class RiemannSumBuilderView extends LessonView {
       ),
     });
 
-    const border = new NumberProperty(model.edges.value[1] ?? 2);
+    const borderProperty = new NumberProperty(model.edges.value[1] ?? 2);
+    const partitionRange = new Range(0, 2);
+    const borderRangeProperty = new Property(model.borderRange(1) ?? partitionRange, {
+      valueComparisonStrategy: "equalsFunction",
+    });
     let syncing = false;
     const borderIndex = () => Math.min(model.selected.value + 1, model.edges.value.length - 2);
-    const borderSlider = slider(strings.borderStringProperty, border, 0, 2, 2, undefined, 0.01);
+    const borderSlider = slider(
+      strings.borderStringProperty,
+      borderProperty,
+      partitionRange.min,
+      partitionRange.max,
+      2,
+      undefined,
+      0.01,
+      borderRangeProperty,
+    );
     const split = button(strings.splitStringProperty, () => model.split());
     const merge = button(strings.mergeStringProperty, () => model.merge());
     const prev = button(strings.previousStringProperty, () => model.select(model.selected.value - 1));
@@ -87,7 +101,9 @@ export class RiemannSumBuilderView extends LessonView {
     if (build) {
       Multilink.multilink([model.edges, model.selected], (edges, i) => {
         syncing = true;
-        border.value = edges[borderIndex()] ?? 0;
+        const index = borderIndex();
+        borderRangeProperty.value = model.borderRange(index) ?? partitionRange;
+        borderProperty.value = edges[index] ?? 0;
         syncing = false;
         merge.enabled = edges.length > 2;
         prev.enabled = i > 0;
@@ -95,7 +111,7 @@ export class RiemannSumBuilderView extends LessonView {
         split.enabled = (edges[i + 1] ?? 2) - (edges[i] ?? 0) >= 0.02;
         borderSlider.visible = merge.enabled;
       });
-      border.lazyLink((x) => {
+      borderProperty.lazyLink((x) => {
         if (!syncing) {
           model.moveBorder(borderIndex(), x);
         }

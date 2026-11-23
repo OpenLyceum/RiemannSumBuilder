@@ -75,7 +75,19 @@ export function slider(
     thumbFill: Colors.accentColorProperty,
     thumbTouchAreaXDilation: 7,
     thumbTouchAreaYDilation: 7,
-    ...(step ? { constrainValue: (x: number) => Math.round(x / step) * step, keyboardStep: step } : {}),
+    ...(step
+      ? {
+          constrainValue: (x: number) => {
+            const enabledRange = enabledRangeProperty?.value;
+            if (enabledRange && (x === enabledRange.min || x === enabledRange.max)) {
+              return x;
+            }
+            const snapped = Math.round(x / step) * step;
+            return enabledRange ? enabledRange.constrainValue(snapped) : snapped;
+          },
+          keyboardStep: step,
+        }
+      : {}),
   });
   return column(text(caption, 15, 285, true), control);
 }

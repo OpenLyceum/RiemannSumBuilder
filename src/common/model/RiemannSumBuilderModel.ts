@@ -1,4 +1,5 @@
 import { NumberProperty, Property } from "scenerystack/axon";
+import { Range } from "scenerystack/dot";
 import type { TModel } from "scenerystack/joist";
 
 export const functions = ["square", "line", "arch"] as const;
@@ -82,14 +83,28 @@ export class RiemannSumBuilderModel implements TModel {
     this.edges.value = next;
   }
 
+  public borderRange(border: number): Range | null {
+    const edges = this.edges.value;
+    if (border < 1 || border >= edges.length - 1) {
+      return null;
+    }
+    const low = (edges[border - 1] ?? 0) + minimumWidth;
+    const high = (edges[border + 1] ?? 2) - minimumWidth;
+    // When both adjoining intervals have minimum width, roundoff may put high just below low.
+    return new Range(low, Math.max(low, high));
+  }
+
   public moveBorder(border: number, x: number): void {
-    const next = [...this.edges.value];
-    if (border < 1 || border >= next.length - 1) {
+    const range = this.borderRange(border);
+    if (!range) {
       return;
     }
-    const low = (next[border - 1] ?? 0) + minimumWidth;
-    const high = (next[border + 1] ?? 2) - minimumWidth;
-    next[border] = Math.max(low, Math.min(high, x));
+    const value = range.constrainValue(x);
+    if (value === this.edges.value[border]) {
+      return;
+    }
+    const next = [...this.edges.value];
+    next[border] = value;
     this.edges.value = next;
   }
 
