@@ -1,21 +1,47 @@
 {
-  "title": "SceneryStack Template",
+  "title": "Riemann Sum Builder",
   "screens": {
-    "sim": "Sim"
+    "build": "Build",
+    "convergence": "Convergence"
   },
   "a11y": {
-    "screenSummary": {
-      "playArea": "The play area shows the main simulation content.",
-      "controlArea": "The control area has a Reset All button that returns the simulation to its starting state.",
-      "interactionHint": "Explore the simulation by interacting with its controls."
+    "build": {
+      "screenSummary": {
+        "playArea": "Function graph over a partition with adjustable borders.",
+        "controlArea": "Use the graph or the selection and border controls to edit a partition. Use arrows on sliders.",
+        "interactionHint": "Split an interval, move a shared border, and compare estimates on the same partition."
+      }
     },
-    "currentDetails": "The simulation is in its initial state.",
-    "controls": {
-      "exampleControl": "Example control"
+    "convergence": {
+      "screenSummary": {
+        "playArea": "Error graph for four area approximation methods.",
+        "controlArea": "Use the graph or the selection and border controls to edit a partition. Use arrows on sliders.",
+        "interactionHint": "Double the number of subintervals. How does each method’s error change?"
+      }
     }
   },
   "preferences": {
-    "title": "Simulation",
-    "exampleToggle": "Example Toggle"
+    "title": "Simulation"
+  },
+  "lesson": {
+    "changeFunction": "Change function",
+    "changeMethod": "Change method",
+    "left": "Left",
+    "right": "Right",
+    "midpoint": "Midpoint",
+    "trapezoid": "Trapezoid",
+    "split": "Split",
+    "merge": "Merge",
+    "previous": "Previous",
+    "next": "Next",
+    "border": "Move selected border",
+    "selection": "Selected subinterval",
+    "count": "Subintervals",
+    "double": "Double",
+    "halve": "Halve",
+    "exact": "Exact signed integral",
+    "error": "Absolute error",
+    "signed": "Contributions above the axis are positive. Contributions below it are negative.",
+    "errorNote": "The vertical axis shows the magnitude of each estimate’s error."
   }
 }

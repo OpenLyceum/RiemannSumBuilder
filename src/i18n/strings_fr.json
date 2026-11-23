@@ -1,21 +1,47 @@
 {
-  "title": "Modèle de Simulation",
+  "title": "Sommes de Riemann",
   "screens": {
-    "sim": "Simulation"
+    "build": "Construire",
+    "convergence": "Convergence"
   },
   "a11y": {
-    "screenSummary": {
-      "playArea": "La zone de jeu affiche le contenu principal de la simulation.",
-      "controlArea": "La zone de contrôle comporte un bouton Tout réinitialiser qui ramène la simulation à son état initial.",
-      "interactionHint": "Explorez la simulation en interagissant avec ses commandes."
+    "build": {
+      "screenSummary": {
+        "playArea": "Graphe de la fonction sur une partition à frontières réglables.",
+        "controlArea": "Modifiez la partition dans le graphe ou avec les commandes de sélection et de frontière. Utilisez les flèches sur les curseurs.",
+        "interactionHint": "Divisez un intervalle, déplacez une frontière et comparez les estimations sur la même partition."
+      }
     },
-    "currentDetails": "La simulation est dans son état initial.",
-    "controls": {
-      "exampleControl": "Contrôle d'exemple"
+    "convergence": {
+      "screenSummary": {
+        "playArea": "Graphe des erreurs de quatre méthodes d’approximation de l’aire.",
+        "controlArea": "Modifiez la partition dans le graphe ou avec les commandes de sélection et de frontière. Utilisez les flèches sur les curseurs.",
+        "interactionHint": "Doublez le nombre de sous-intervalles. Comment varie l’erreur de chaque méthode ?"
+      }
     }
   },
   "preferences": {
-    "title": "Simulation",
-    "exampleToggle": "Exemple de bascule"
+    "title": "Simulation"
+  },
+  "lesson": {
+    "changeFunction": "Changer de fonction",
+    "changeMethod": "Changer de méthode",
+    "left": "Gauche",
+    "right": "Droite",
+    "midpoint": "Milieu",
+    "trapezoid": "Trapèze",
+    "split": "Diviser",
+    "merge": "Fusionner",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "border": "Déplacer la frontière choisie",
+    "selection": "Sous-intervalle choisi",
+    "count": "Sous-intervalles",
+    "double": "Doubler",
+    "halve": "Réduire de moitié",
+    "exact": "Intégrale algébrique exacte",
+    "error": "Erreur absolue",
+    "signed": "Les contributions au-dessus de l’axe sont positives. Celles sous l’axe sont négatives.",
+    "errorNote": "L’axe vertical montre la valeur absolue de l’erreur de chaque estimation."
   }
 }

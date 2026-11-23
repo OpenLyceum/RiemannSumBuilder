@@ -9,11 +9,13 @@
  * tests below using forceGC().
  */
 
-// seed:leak-imports:start
-import { TimeModel } from "../src/common/TimeModel.js";
-// seed:leak-imports:end
+import { BuildModel } from "../src/build/model/BuildModel.js";
+import { RiemannSumBuilderModel } from "../src/common/model/RiemannSumBuilderModel.js";
+import { ConvergenceModel } from "../src/convergence/model/ConvergenceModel.js";
 import { describeDisposalLeaks } from "./helpers/memoryLeak.js";
 
-// seed:leak-cases:start
-describeDisposalLeaks([{ name: "TimeModel", create: () => new TimeModel(), idempotentDispose: true }]);
-// seed:leak-cases:end
+describeDisposalLeaks([
+  { name: "RiemannSumBuilderModel", create: () => new RiemannSumBuilderModel("build") },
+  { name: "BuildModel", create: () => new BuildModel() },
+  { name: "ConvergenceModel", create: () => new ConvergenceModel() },
+]);

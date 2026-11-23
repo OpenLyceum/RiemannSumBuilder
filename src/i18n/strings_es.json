@@ -1,21 +1,47 @@
 {
-  "title": "Plantilla de Simulación",
+  "title": "Sumas de Riemann",
   "screens": {
-    "sim": "Simulación"
+    "build": "Construir",
+    "convergence": "Convergencia"
   },
   "a11y": {
-    "screenSummary": {
-      "playArea": "El área de juego muestra el contenido principal de la simulación.",
-      "controlArea": "El área de control tiene un botón Restablecer todo que devuelve la simulación a su estado inicial.",
-      "interactionHint": "Explora la simulación interactuando con sus controles."
+    "build": {
+      "screenSummary": {
+        "playArea": "Gráfica de la función sobre una partición con bordes ajustables.",
+        "controlArea": "Edita la partición en la gráfica o con los controles de selección y borde. Usa las flechas en los deslizadores.",
+        "interactionHint": "Divide un intervalo, mueve un borde común y compara las estimaciones en la misma partición."
+      }
     },
-    "currentDetails": "La simulación está en su estado inicial.",
-    "controls": {
-      "exampleControl": "Control de ejemplo"
+    "convergence": {
+      "screenSummary": {
+        "playArea": "Gráfica del error de cuatro métodos de aproximación de áreas.",
+        "controlArea": "Edita la partición en la gráfica o con los controles de selección y borde. Usa las flechas en los deslizadores.",
+        "interactionHint": "Duplica el número de subintervalos. ¿Cómo cambia el error de cada método?"
+      }
     }
   },
   "preferences": {
-    "title": "Simulación",
-    "exampleToggle": "Ejemplo de alternancia"
+    "title": "Simulación"
+  },
+  "lesson": {
+    "changeFunction": "Cambiar de función",
+    "changeMethod": "Cambiar método",
+    "left": "Izquierda",
+    "right": "Derecha",
+    "midpoint": "Punto medio",
+    "trapezoid": "Trapecio",
+    "split": "Dividir",
+    "merge": "Unir",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "border": "Mover el borde elegido",
+    "selection": "Subintervalo elegido",
+    "count": "Subintervalos",
+    "double": "Duplicar",
+    "halve": "Reducir a la mitad",
+    "exact": "Integral con signo exacta",
+    "error": "Error absoluto",
+    "signed": "Las contribuciones por encima del eje son positivas. Las de abajo son negativas.",
+    "errorNote": "El eje vertical muestra la magnitud del error de cada estimación."
   }
 }
