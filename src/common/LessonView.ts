@@ -1,5 +1,5 @@
 import { DerivedProperty, type NumberProperty, type ReadOnlyProperty, type TReadOnlyProperty } from "scenerystack/axon";
-import { Bounds2, Dimension2, Range, Vector2 } from "scenerystack/dot";
+import { Bounds2, Dimension2, Range, roundSymmetric, Vector2 } from "scenerystack/dot";
 import { localeProperty } from "scenerystack/joist";
 import { Shape } from "scenerystack/kite";
 import {
@@ -93,7 +93,7 @@ export function slider(
             if (enabledRange && (x === enabledRange.min || x === enabledRange.max)) {
               return x;
             }
-            const snapped = Math.round(x / step) * step;
+            const snapped = roundSymmetric(x / step) * step;
             return enabledRange ? enabledRange.constrainValue(snapped) : snapped;
           },
           keyboardStep: step,

@@ -1,5 +1,5 @@
 import { NumberProperty, Property } from "scenerystack/axon";
-import { dotRandom, Range, toFixed } from "scenerystack/dot";
+import { dotRandom, Range, roundSymmetric, toFixed } from "scenerystack/dot";
 import type { TModel } from "scenerystack/joist";
 
 export const functions = ["square", "line", "arch", "custom"] as const;
@@ -183,7 +183,7 @@ export class RiemannSumBuilderModel implements TModel {
   }
 
   public moveKnot(index: number, y: number): void {
-    const value = knotRange.constrainValue(Number(toFixed(Math.round(y / knotStep) * knotStep, 2)));
+    const value = knotRange.constrainValue(Number(toFixed(roundSymmetric(y / knotStep) * knotStep, 2)));
     if (value !== this.knots.value[index]) {
       this.knots.value = this.knots.value.map((knot, i) => (i === index ? value : knot));
     }

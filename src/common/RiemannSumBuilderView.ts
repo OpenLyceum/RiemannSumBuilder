@@ -1,5 +1,5 @@
 import { Multilink, NumberProperty, Property } from "scenerystack/axon";
-import { Range } from "scenerystack/dot";
+import { Range, roundSymmetric } from "scenerystack/dot";
 import { localeProperty } from "scenerystack/joist";
 import { StringUtils } from "scenerystack/phetcommon";
 import type { Node } from "scenerystack/scenery";
@@ -191,7 +191,7 @@ export class RiemannSumBuilderView extends LessonView {
       // count it will snap to on release.
       const setPower = (x: number) => {
         this.powerDragX = x;
-        const power = Math.max(0, Math.min(maximumPower, Math.round(this.plot.modelX(x))));
+        const power = Math.max(0, Math.min(maximumPower, roundSymmetric(this.plot.modelX(x))));
         if (power === model.power.value) {
           this.drawConvergence(model);
         } else {
@@ -199,7 +199,7 @@ export class RiemannSumBuilderView extends LessonView {
         }
       };
       this.plot.onDrag((x) => {
-        model.power.value = Math.max(0, Math.min(maximumPower, Math.round(x)));
+        model.power.value = Math.max(0, Math.min(maximumPower, roundSymmetric(x)));
       });
       this.powerHandle = this.plot.handle({
         cursor: "ew-resize",
