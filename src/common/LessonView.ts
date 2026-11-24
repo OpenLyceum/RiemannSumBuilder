@@ -2,7 +2,7 @@
  * LessonView.ts
  *
  * Canonical lesson scaffold shared, file for file, by the Calculus I sims
- * (LimitExplorer, MeanValueTheorem, RiemannSumBuilder, RelatedRates). Keep the
+ * (Limit Explorer, Mean Value Theorem, Riemann Sum Builder, Related Rates). Keep the
  * copies identical apart from the sim prefix in the imports: fix a bug here, then
  * copy the file into the other three sims.
  *
@@ -59,14 +59,17 @@ type Paint = Rectangle["fill"];
 type Domain = readonly [number, number, number, number];
 const layout = { inset: 32, gap: 24, plotWidth: 610, plotHeight: 360, panelWidth: 320, top: 107 };
 
+/** @public */
 export function computed(properties: readonly TReadOnlyProperty<unknown>[], calculate: () => string) {
   return DerivedProperty.deriveAny([localeProperty, ...properties], calculate);
 }
 
+/** @public */
 export function format(value: number, digits = 2): string {
   return new Intl.NumberFormat(localeProperty.value, { maximumFractionDigits: digits }).format(value);
 }
 
+/** @public */
 export function text(value: StringSource, size = 16, width = 298, bold = false): Text {
   return new Text(value, {
     font: `${bold ? "bold " : ""}${size}px sans-serif`,
@@ -78,6 +81,8 @@ export function text(value: StringSource, size = 16, width = 298, bold = false):
 /**
  * Like `text`, but reads `<sup>`, `<sub>`, `<i>` and `<b>` markup, for formulas.
  * With `wrap`, long text breaks onto new lines at `width` instead of shrinking.
+ *
+ * @public
  */
 export function richText(value: StringSource, size = 16, width = 298, bold = false, wrap = false): RichText {
   return new RichText(value, {
@@ -87,6 +92,7 @@ export function richText(value: StringSource, size = 16, width = 298, bold = fal
   });
 }
 
+/** @public */
 export function button(label: ReadOnlyProperty<string>, action: () => void): RectangularPushButton {
   return new RectangularPushButton({
     ...FLAT_PANEL_PUSH_BUTTON_OPTIONS,
@@ -98,7 +104,11 @@ export function button(label: ReadOnlyProperty<string>, action: () => void): Rec
   });
 }
 
-/** One entry of a combo box or radio group: `label` may carry RichText markup; `name` is what is announced. */
+/**
+ * One entry of a combo box or radio group: `label` may carry RichText markup; `name` is what is announced.
+ *
+ * @public
+ */
 export type Choice<T> = {
   readonly value: T;
   readonly label: StringSource;
@@ -108,6 +118,8 @@ export type Choice<T> = {
 /**
  * A drop-down list for choosing one of several named items (functions, regions, scenarios).
  * The open list is drawn in `listParent`, which LessonView keeps above everything else.
+ *
+ * @public
  */
 export function comboBox<T>(
   property: Property<T>,
@@ -129,7 +141,10 @@ export function comboBox<T>(
   );
 }
 
-/** A row (or column) of toggle buttons that keeps every option in view, for modes and rules. */
+/** A row (or column) of toggle buttons that keeps every option in view, for modes and rules.
+ *
+ * @public
+ */
 export function radioButtons<T>(
   property: Property<T>,
   choices: readonly Choice<T>[],
@@ -169,6 +184,7 @@ export function radioButtons<T>(
   );
 }
 
+/** @public */
 export function checkbox(property: Property<boolean>, label: ReadOnlyProperty<string>, width = 270): Checkbox {
   return new Checkbox(
     property,
@@ -183,15 +199,20 @@ export function checkbox(property: Property<boolean>, label: ReadOnlyProperty<st
   );
 }
 
+/** @public */
 export function row(...children: Node[]): HBox {
   return new HBox({ children, spacing: 7, align: "center" });
 }
 
+/** @public */
 export function column(...children: Node[]): VBox {
   return new VBox({ children, spacing: 7, align: "left" });
 }
 
-/** About `count` evenly spaced round values (steps of 1, 2 or 5 × 10ⁿ) covering [min, max]. */
+/** About `count` evenly spaced round values (steps of 1, 2 or 5 × 10ⁿ) covering [min, max].
+ *
+ * @public
+ */
 export function niceTicks(min: number, max: number, count = 5): number[] {
   const span = max - min;
   if (!(span > 0 && Number.isFinite(span))) {
@@ -207,6 +228,7 @@ export function niceTicks(min: number, max: number, count = 5): number[] {
   return ticks;
 }
 
+/** @public */
 export function slider(
   label: ReadOnlyProperty<string>,
   value: NumberProperty,
