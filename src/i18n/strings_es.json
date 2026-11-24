@@ -7,16 +7,16 @@
   "a11y": {
     "build": {
       "screenSummary": {
-        "playArea": "Gráfica de la función sobre una partición con bordes ajustables.",
-        "controlArea": "Edita la partición en la gráfica o con los controles de selección y borde. Usa las flechas en los deslizadores.",
-        "interactionHint": "Divide un intervalo, mueve un borde común y compara las estimaciones en la misma partición."
+        "playArea": "Gráfica de la función con los límites a y b y una partición de [a, b], rellenada según la regla elegida. El área bajo el eje cuenta como negativa.",
+        "controlArea": "Elige una función y una regla, arrastra los límites, fija un número de subintervalos iguales, o divide, une y mueve fronteras.",
+        "interactionHint": "Elige una función y una regla, arrastra a y b, luego refina la partición y compara las estimaciones."
       }
     },
     "convergence": {
       "screenSummary": {
-        "playArea": "Gráfica del error de cuatro métodos de aproximación de áreas.",
-        "controlArea": "Edita la partición en la gráfica o con los controles de selección y borde. Usa las flechas en los deslizadores.",
-        "interactionHint": "Duplica el número de subintervalos. ¿Cómo cambia el error de cada método?"
+        "playArea": "Gráfica log–log del error de cinco reglas cuando el número de subintervalos se duplica.",
+        "controlArea": "Elige una función, reduce a la mitad o duplica los subintervalos, o prueba el desafío.",
+        "interactionHint": "Duplica n. ¿Qué regla reduce su error más rápido, y en qué factor?"
       }
     }
   },
@@ -24,8 +24,6 @@
     "title": "Simulación"
   },
   "lesson": {
-    "changeFunction": "Cambiar de función",
-    "changeMethod": "Cambiar método",
     "left": "Izquierda",
     "right": "Derecha",
     "midpoint": "Punto medio",
@@ -41,15 +39,26 @@
     "halve": "Reducir a la mitad",
     "exact": "Integral con signo exacta",
     "error": "Error absoluto",
-    "signed": "Las contribuciones por encima del eje son positivas. Las de abajo son negativas.",
-    "errorNote": "El eje vertical muestra la magnitud del error de cada estimación.",
-    "customFunction": "f(x) = tu curva: arrastra los puntos",
+    "errorNote": "Ambos ejes son logarítmicos. Una regla cuyo error sigue una recta de pendiente −p reduce su error como 1/n<sup>p</sup>: orden p. Duplicar n divide entonces el error entre 2<sup>p</sup>.",
+    "customFunction": "Tu curva (arrastra los puntos)",
     "curvePoint": "Punto de la curva en x =",
     "newChallenge": "Nuevo reto",
     "check": "Comprobar",
     "challengePrompt": "¿Menos subintervalos con error de {{method}} < {{tolerance}}?",
     "correct": "Correcto: es el mínimo.",
     "tooFew": "Aún no: el error sigue siendo grande.",
-    "tooMany": "Funciona, pero con menos también."
+    "tooMany": "Funciona, pero con menos también.",
+    "function": "Función",
+    "rule": "Regla",
+    "simpson": "Simpson",
+    "upper": "Superior",
+    "lower": "Inferior",
+    "bounds": "Límites",
+    "boundA": "Límite inferior a",
+    "boundB": "Límite superior b",
+    "totalArea": "Área total: sumar |f| en lugar de f",
+    "exactTotal": "Área total exacta",
+    "pieces": "Suma de {{count}} piezas",
+    "order": "orden"
   }
 }

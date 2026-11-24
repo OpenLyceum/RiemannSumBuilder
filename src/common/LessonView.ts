@@ -1,4 +1,23 @@
-import { DerivedProperty, type NumberProperty, type ReadOnlyProperty, type TReadOnlyProperty } from "scenerystack/axon";
+/**
+ * LessonView.ts
+ *
+ * Canonical lesson scaffold shared, file for file, by the Calculus I sims
+ * (LimitExplorer, MeanValueTheorem, RiemannSumBuilder, RelatedRates). Keep the
+ * copies identical apart from the sim prefix in the imports: fix a bug here, then
+ * copy the file into the other three sims.
+ *
+ * It provides a titled screen with a plot on the left, a control panel on the
+ * right and notes under the plot, plus small control factories (combo box,
+ * radio buttons, checkbox, slider) themed from the sim's colors.
+ */
+
+import {
+  DerivedProperty,
+  type NumberProperty,
+  type Property,
+  type ReadOnlyProperty,
+  type TReadOnlyProperty,
+} from "scenerystack/axon";
 import { Bounds2, Dimension2, Range, roundSymmetric, Vector2 } from "scenerystack/dot";
 import { localeProperty } from "scenerystack/joist";
 import { Shape } from "scenerystack/kite";
@@ -11,15 +30,24 @@ import {
   Node,
   Path,
   Rectangle,
+  RichText,
   Text,
   VBox,
 } from "scenerystack/scenery";
 import { ResetAllButton } from "scenerystack/scenery-phet";
 import { ScreenSummaryContent, ScreenView } from "scenerystack/sim";
-import { HSlider, RectangularPushButton } from "scenerystack/sun";
+import {
+  Checkbox,
+  ComboBox,
+  HSlider,
+  RectangularPushButton,
+  RectangularRadioButton,
+  RectangularRadioButtonGroup,
+} from "scenerystack/sun";
 import Colors from "../RiemannSumBuilderColors.js";
 import { SCREEN_VIEW_MARGIN } from "../RiemannSumBuilderConstants.js";
 import {
+  RIEMANN_SUM_BUILDER_COMBO_BOX_OPTIONS as COMBO_BOX_OPTIONS,
   FLAT_PANEL_PUSH_BUTTON_OPTIONS,
   FLAT_RESET_ALL_BUTTON_OPTIONS,
   LIGHT_SURFACE_TEXT_FILL,
@@ -47,6 +75,18 @@ export function text(value: StringSource, size = 16, width = 298, bold = false):
   });
 }
 
+/**
+ * Like `text`, but reads `<sup>`, `<sub>`, `<i>` and `<b>` markup, for formulas.
+ * With `wrap`, long text breaks onto new lines at `width` instead of shrinking.
+ */
+export function richText(value: StringSource, size = 16, width = 298, bold = false, wrap = false): RichText {
+  return new RichText(value, {
+    font: `${bold ? "bold " : ""}${size}px sans-serif`,
+    ...(wrap ? { lineWrap: width } : { maxWidth: width }),
+    fill: Colors.textColorProperty,
+  });
+}
+
 export function button(label: ReadOnlyProperty<string>, action: () => void): RectangularPushButton {
   return new RectangularPushButton({
     ...FLAT_PANEL_PUSH_BUTTON_OPTIONS,
@@ -58,12 +98,113 @@ export function button(label: ReadOnlyProperty<string>, action: () => void): Rec
   });
 }
 
+/** One entry of a combo box or radio group: `label` may carry RichText markup; `name` is what is announced. */
+export type Choice<T> = {
+  readonly value: T;
+  readonly label: StringSource;
+  readonly name?: StringSource;
+};
+
+/**
+ * A drop-down list for choosing one of several named items (functions, regions, scenarios).
+ * The open list is drawn in `listParent`, which LessonView keeps above everything else.
+ */
+export function comboBox<T>(
+  property: Property<T>,
+  choices: readonly Choice<T>[],
+  listParent: Node,
+  accessibleName: ReadOnlyProperty<string>,
+  width = 270,
+): ComboBox<T> {
+  return new ComboBox(
+    property,
+    choices.map((choice) => ({
+      value: choice.value,
+      createNode: () =>
+        new RichText(choice.label, { font: "15px sans-serif", fill: LIGHT_SURFACE_TEXT_FILL, maxWidth: width - 40 }),
+      accessibleName: choice.name ?? choice.label,
+    })),
+    listParent,
+    { ...COMBO_BOX_OPTIONS, accessibleName, xMargin: 10, yMargin: 5, cornerRadius: 4 },
+  );
+}
+
+/** A row (or column) of toggle buttons that keeps every option in view, for modes and rules. */
+export function radioButtons<T>(
+  property: Property<T>,
+  choices: readonly Choice<T>[],
+  accessibleName: ReadOnlyProperty<string>,
+  options: { orientation?: "horizontal" | "vertical"; size?: number; width?: number } = {},
+): RectangularRadioButtonGroup<T> {
+  const size = options.size ?? 14;
+  return new RectangularRadioButtonGroup(
+    property,
+    choices.map((choice) => ({
+      value: choice.value,
+      createNode: () =>
+        new RichText(choice.label, {
+          font: `${size}px sans-serif`,
+          fill: LIGHT_SURFACE_TEXT_FILL,
+          maxWidth: options.width ?? 120,
+        }),
+      options: { accessibleName: choice.name ?? choice.label },
+    })),
+    {
+      orientation: options.orientation ?? "horizontal",
+      spacing: 5,
+      accessibleName,
+      radioButtonOptions: {
+        baseColor: Colors.controlSurfaceColorProperty,
+        buttonAppearanceStrategy: RectangularRadioButton.FlatAppearanceStrategy,
+        buttonAppearanceStrategyOptions: {
+          selectedStroke: Colors.accentColorProperty,
+          selectedLineWidth: 3,
+          deselectedStroke: Colors.panelBorderColorProperty,
+        },
+        contentAppearanceStrategyOptions: { deselectedContentOpacity: 0.9 },
+        xMargin: 7,
+        yMargin: 5,
+      },
+    },
+  );
+}
+
+export function checkbox(property: Property<boolean>, label: ReadOnlyProperty<string>, width = 270): Checkbox {
+  return new Checkbox(
+    property,
+    new Text(label, { font: "15px sans-serif", fill: Colors.textColorProperty, maxWidth: width }),
+    {
+      boxWidth: 16,
+      spacing: 7,
+      checkboxColor: Colors.textColorProperty,
+      checkboxColorBackground: Colors.panelBackgroundColorProperty,
+      accessibleName: label,
+    },
+  );
+}
+
 export function row(...children: Node[]): HBox {
   return new HBox({ children, spacing: 7, align: "center" });
 }
 
 export function column(...children: Node[]): VBox {
   return new VBox({ children, spacing: 7, align: "left" });
+}
+
+/** About `count` evenly spaced round values (steps of 1, 2 or 5 × 10ⁿ) covering [min, max]. */
+export function niceTicks(min: number, max: number, count = 5): number[] {
+  const span = max - min;
+  if (!(span > 0 && Number.isFinite(span))) {
+    return [min];
+  }
+  const raw = span / count;
+  const power = 10 ** Math.floor(Math.log10(raw));
+  const step = ([1, 2, 5, 10].find((factor) => factor * power >= raw) ?? 10) * power;
+  const ticks: number[] = [];
+  for (let value = Math.ceil(min / step) * step; value <= max + step * 1e-9; value += step) {
+    ticks.push(Math.abs(value) < step * 1e-9 ? 0 : Number(value.toPrecision(12)));
+  }
+  return ticks;
 }
 
 export function slider(
@@ -100,8 +241,17 @@ export function slider(
         }
       : {}),
   });
-  return column(text(caption, 15, 285, true), control);
+  const captionText = text(caption, 15, 285, true);
+  const box = column(captionText, control);
+  box.addDisposable(control, captionText, caption);
+  return box;
 }
+
+/**
+ * Tick-label formatters (the result may carry RichText markup such as `10<sup>−3</sup>`),
+ * and whether to draw the x = 0 and y = 0 axis lines (off for logarithmic plots).
+ */
+type TickLabels = { x?: (value: number) => string; y?: (value: number) => string; axes?: boolean };
 
 class Plot extends Node {
   public readonly layers = new Node();
@@ -109,6 +259,7 @@ class Plot extends Node {
   private readonly handles = new Node();
   private readonly axes = new Node();
   private domain: Domain = [-1, 1, -1, 1];
+  private axesKey = "";
   public readonly widthInPixels = layout.plotWidth;
   public readonly heightInPixels = layout.plotHeight;
 
@@ -129,52 +280,76 @@ class Plot extends Node {
     this.layers.clipArea = Shape.rect(1, 1, plotWidth - 2, plotHeight - 2);
   }
 
+  /**
+   * Sets the visible model rectangle and redraws the grid, tick labels and axis titles.
+   * Nothing is rebuilt when the domain, ticks, titles and locale are unchanged.
+   */
   public setDomain(
     domain: Domain,
     xAxis: StringSource,
     yAxis: StringSource,
     xTicks?: number[],
     yTicks?: number[],
+    labels: TickLabels = {},
   ): void {
-    this.domain = domain;
-    this.clear(this.axes);
     const [xmin, xmax, ymin, ymax] = domain;
+    const xs = xTicks ?? niceTicks(xmin, xmax, 6);
+    const ys = yTicks ?? niceTicks(ymin, ymax, 5);
+    const title = (source: StringSource) => (typeof source === "string" ? source : source.value);
+    const key = JSON.stringify([
+      localeProperty.value,
+      domain,
+      xs,
+      ys,
+      title(xAxis),
+      title(yAxis),
+      xs.map(labels.x ?? String),
+      ys.map(labels.y ?? String),
+    ]);
+    this.domain = domain;
+    if (key === this.axesKey) {
+      return;
+    }
+    this.axesKey = key;
+    this.clear(this.axes);
     const horizontal = this.plotY(Math.min(ymax, Math.max(ymin, 0)));
     const vertical = this.plotX(Math.min(xmax, Math.max(xmin, 0)));
     const inset = 6;
-    for (const value of xTicks ?? [xmin, (xmin + xmax) / 2, xmax]) {
+    for (const value of xs) {
       const x = this.plotX(value);
       this.axes.addChild(new Line(x, 0, x, layout.plotHeight, { stroke: Colors.panelBorderColorProperty }));
-      const tick = text(format(value, 3), 11, 62);
+      const tick = richText(labels.x ? labels.x(value) : format(value, 3), 11, 62);
       tick.centerX = Math.max(tick.width / 2 + inset, Math.min(layout.plotWidth - tick.width / 2 - inset, x));
       tick.bottom = layout.plotHeight - inset;
       this.axes.addChild(tick);
     }
-    for (const value of yTicks ?? [ymin, (ymin + ymax) / 2, ymax]) {
+    for (const value of ys) {
       const y = this.plotY(value);
       this.axes.addChild(new Line(0, y, layout.plotWidth, y, { stroke: Colors.panelBorderColorProperty }));
-      const tick = text(format(value, 2), 11, 62);
+      const tick = richText(labels.y ? labels.y(value) : format(value, 2), 11, 62);
       tick.left = inset;
       tick.centerY = Math.max(12, Math.min(layout.plotHeight - 26, y));
       this.axes.addChild(tick);
     }
-    this.axes.addChild(
-      new Line(inset, horizontal, layout.plotWidth - inset, horizontal, {
-        stroke: Colors.textColorProperty,
-        lineWidth: 1,
-      }),
-    );
-    this.axes.addChild(
-      new Line(vertical, inset, vertical, layout.plotHeight - inset, {
-        stroke: Colors.textColorProperty,
-        lineWidth: 1,
-      }),
-    );
-    const xLabel = text(xAxis, 13, 125, true);
+    if (labels.axes !== false) {
+      this.axes.addChild(
+        new Line(inset, horizontal, layout.plotWidth - inset, horizontal, {
+          stroke: Colors.textColorProperty,
+          lineWidth: 1,
+        }),
+      );
+      this.axes.addChild(
+        new Line(vertical, inset, vertical, layout.plotHeight - inset, {
+          stroke: Colors.textColorProperty,
+          lineWidth: 1,
+        }),
+      );
+    }
+    const xLabel = richText(xAxis, 13, 125, true);
     xLabel.right = layout.plotWidth - 12;
     xLabel.bottom = layout.plotHeight - 24;
-    const yLabel = text(yAxis, 13, 140, true);
-    yLabel.left = 36;
+    const yLabel = richText(yAxis, 13, 140, true);
+    yLabel.left = 48;
     yLabel.top = 9;
     this.axes.addChild(xLabel);
     this.axes.addChild(yLabel);
@@ -229,29 +404,42 @@ class Plot extends Node {
     width = 2,
     lineDash?: number[],
   ): void {
-    if (points.length === 0) {
-      return;
-    }
     const shape = new Shape();
-    points.forEach(([x, y], i) => {
-      if (i === 0) {
-        shape.moveTo(this.plotX(x), this.plotY(y));
-      } else {
-        shape.lineTo(this.plotX(x), this.plotY(y));
+    let drawing = false;
+    // Non-finite samples (poles, gaps) break the curve instead of drawing to infinity.
+    for (const [x, y] of points) {
+      if (!(Number.isFinite(x) && Number.isFinite(y))) {
+        drawing = false;
+        continue;
       }
-    });
-    this.layers.addChild(
-      new Path(shape, { stroke, lineWidth: width, ...(lineDash ? { lineDash } : {}), pickable: false }),
-    );
+      const px = this.plotX(x);
+      const py = Math.max(-1e4, Math.min(1e4, this.plotY(y)));
+      if (drawing) {
+        shape.lineTo(px, py);
+      } else {
+        shape.moveTo(px, py);
+        drawing = true;
+      }
+    }
+    if (shape.bounds.isFinite()) {
+      this.layers.addChild(
+        new Path(shape, { stroke, lineWidth: width, ...(lineDash ? { lineDash } : {}), pickable: false }),
+      );
+    }
   }
 
   public region(points: ReadonlyArray<readonly [number, number]>, fill: Paint, stroke: Paint = null): void {
+    const finite = points.filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
+    if (finite.length < 3) {
+      return;
+    }
     const shape = new Shape();
-    points.forEach(([x, y], i) => {
+    finite.forEach(([x, y], i) => {
+      const py = Math.max(-1e4, Math.min(1e4, this.plotY(y)));
       if (i === 0) {
-        shape.moveTo(this.plotX(x), this.plotY(y));
+        shape.moveTo(this.plotX(x), py);
       } else {
-        shape.lineTo(this.plotX(x), this.plotY(y));
+        shape.lineTo(this.plotX(x), py);
       }
     });
     shape.close();
@@ -259,10 +447,13 @@ class Plot extends Node {
   }
 
   public point(x: number, y: number, stroke: Paint, open = false, radius = 5): void {
+    if (!(Number.isFinite(x) && Number.isFinite(y))) {
+      return;
+    }
     this.layers.addChild(
       new Circle(radius, {
         x: this.plotX(x),
-        y: this.plotY(y),
+        y: Math.max(-1e4, Math.min(1e4, this.plotY(y))),
         fill: open ? Colors.panelBackgroundColorProperty : stroke,
         stroke,
         lineWidth: 2,
@@ -301,7 +492,12 @@ type HandleOptions = {
   end?: () => void;
   // For a quantity with no slider: the handle joins the tab order and the arrow
   // keys move it by whole steps (Shift for quarter steps), passed as (dx, dy).
-  keyboard?: { name: TReadOnlyProperty<string>; step: (dx: number, dy: number) => void };
+  // `direction` limits which arrow keys respond.
+  keyboard?: {
+    name: TReadOnlyProperty<string>;
+    direction?: "leftRight" | "upDown" | "both";
+    step: (dx: number, dy: number) => void;
+  };
   // Value label shown above the handle while it is hovered or dragged, read on each place().
   readout?: () => string;
 };
@@ -379,6 +575,7 @@ class PlotHandle extends Node {
       this.keyboardListener = new KeyboardDragListener({
         dragDelta: 1,
         shiftDragDelta: 0.25,
+        keyboardDragDirection: keyboard.direction ?? "both",
         drag: (_event, listener) => keyboard.step(listener.modelDelta.x, -listener.modelDelta.y),
       });
       this.addInputListener(this.keyboardListener);
@@ -437,6 +634,8 @@ type LessonOptions = {
 
 export class LessonView extends ScreenView {
   public readonly plot = new Plot();
+  /** Parent for open combo-box lists; `finish()` puts it on top of everything. */
+  protected readonly listParent = new Node();
 
   public constructor(options: LessonOptions) {
     super({
@@ -458,6 +657,11 @@ export class LessonView extends ScreenView {
     this.addChild(title);
     this.addChild(hint);
     this.addChild(this.plot);
+  }
+
+  /** Width available under the plot for notes, readouts and rule bars. */
+  protected get notesWidth(): number {
+    return layout.plotWidth;
   }
 
   protected finish(controls: Node, notes: Node, reset: () => void): void {
@@ -483,6 +687,8 @@ export class LessonView extends ScreenView {
     this.addChild(sidebar);
     this.addChild(notes);
     this.addChild(resetButton);
-    this.addChild(new Node({ pdomOrder: [controls, resetButton] }));
+    this.addChild(this.listParent);
+    // Reading order: what is on the graph, then the controls, then the notes under it.
+    this.addChild(new Node({ pdomOrder: [this.plot, controls, notes, resetButton] }));
   }
 }

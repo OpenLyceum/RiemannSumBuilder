@@ -7,16 +7,16 @@
   "a11y": {
     "build": {
       "screenSummary": {
-        "playArea": "Function graph over a partition with adjustable borders.",
-        "controlArea": "Use the graph or the selection and border controls to edit a partition. Use arrows on sliders.",
-        "interactionHint": "Split an interval, move a shared border, and compare estimates on the same partition."
+        "playArea": "Function graph with the bounds a and b and a partition of [a, b], filled by the chosen rule. Area below the axis counts as negative.",
+        "controlArea": "Choose a function and a rule, drag the bounds, set a number of equal subintervals, or split, merge and move single borders.",
+        "interactionHint": "Pick a function and a rule, drag a and b, then refine the partition and compare the estimates."
       }
     },
     "convergence": {
       "screenSummary": {
-        "playArea": "Error graph for four area approximation methods.",
-        "controlArea": "Use the graph or the selection and border controls to edit a partition. Use arrows on sliders.",
-        "interactionHint": "Double the number of subintervals. How does each method’s error change?"
+        "playArea": "Log–log graph of the error of five rules as the number of subintervals doubles.",
+        "controlArea": "Choose a function, halve or double the subintervals, or try the challenge.",
+        "interactionHint": "Double n. Which rule’s error falls fastest, and by what factor?"
       }
     }
   },
@@ -24,8 +24,6 @@
     "title": "Simulation"
   },
   "lesson": {
-    "changeFunction": "Change function",
-    "changeMethod": "Change method",
     "left": "Left",
     "right": "Right",
     "midpoint": "Midpoint",
@@ -41,15 +39,26 @@
     "halve": "Halve",
     "exact": "Exact signed integral",
     "error": "Absolute error",
-    "signed": "Contributions above the axis are positive. Contributions below it are negative.",
-    "errorNote": "The vertical axis shows the magnitude of each estimate’s error.",
-    "customFunction": "f(x) = your curve: drag the points",
+    "errorNote": "Both axes are logarithmic. A rule whose error falls along a line of slope −p shrinks its error like 1/n<sup>p</sup>: order p. Doubling n then divides the error by 2<sup>p</sup>.",
+    "customFunction": "Your curve (drag the points)",
     "curvePoint": "Curve point at x =",
     "newChallenge": "New challenge",
     "check": "Check",
     "challengePrompt": "Fewest subintervals for {{method}} error < {{tolerance}}?",
     "correct": "Correct: that is the fewest.",
     "tooFew": "Not yet: the error is still too large.",
-    "tooMany": "That works, but fewer would too."
+    "tooMany": "That works, but fewer would too.",
+    "function": "Function",
+    "rule": "Rule",
+    "simpson": "Simpson",
+    "upper": "Upper",
+    "lower": "Lower",
+    "bounds": "Bounds",
+    "boundA": "Lower bound a",
+    "boundB": "Upper bound b",
+    "totalArea": "Total area: sum |f| instead of f",
+    "exactTotal": "Exact total area",
+    "pieces": "Sum of {{count}} pieces",
+    "order": "order"
   }
 }

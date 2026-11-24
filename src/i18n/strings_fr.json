@@ -7,16 +7,16 @@
   "a11y": {
     "build": {
       "screenSummary": {
-        "playArea": "Graphe de la fonction sur une partition à frontières réglables.",
-        "controlArea": "Modifiez la partition dans le graphe ou avec les commandes de sélection et de frontière. Utilisez les flèches sur les curseurs.",
-        "interactionHint": "Divisez un intervalle, déplacez une frontière et comparez les estimations sur la même partition."
+        "playArea": "Graphe de la fonction avec les bornes a et b et une partition de [a, b], remplie selon la règle choisie. L’aire sous l’axe compte négativement.",
+        "controlArea": "Choisissez une fonction et une règle, faites glisser les bornes, fixez un nombre de sous-intervalles égaux, ou divisez, fusionnez et déplacez des frontières.",
+        "interactionHint": "Choisissez une fonction et une règle, faites glisser a et b, puis affinez la partition et comparez les estimations."
       }
     },
     "convergence": {
       "screenSummary": {
-        "playArea": "Graphe des erreurs de quatre méthodes d’approximation de l’aire.",
-        "controlArea": "Modifiez la partition dans le graphe ou avec les commandes de sélection et de frontière. Utilisez les flèches sur les curseurs.",
-        "interactionHint": "Doublez le nombre de sous-intervalles. Comment varie l’erreur de chaque méthode ?"
+        "playArea": "Graphe log–log de l’erreur de cinq règles quand le nombre de sous-intervalles double.",
+        "controlArea": "Choisissez une fonction, divisez ou doublez les sous-intervalles, ou relevez le défi.",
+        "interactionHint": "Doublez n. Quelle règle voit son erreur diminuer le plus vite, et de quel facteur ?"
       }
     }
   },
@@ -24,8 +24,6 @@
     "title": "Simulation"
   },
   "lesson": {
-    "changeFunction": "Changer de fonction",
-    "changeMethod": "Changer de méthode",
     "left": "Gauche",
     "right": "Droite",
     "midpoint": "Milieu",
@@ -41,15 +39,26 @@
     "halve": "Réduire de moitié",
     "exact": "Intégrale algébrique exacte",
     "error": "Erreur absolue",
-    "signed": "Les contributions au-dessus de l’axe sont positives. Celles sous l’axe sont négatives.",
-    "errorNote": "L’axe vertical montre la valeur absolue de l’erreur de chaque estimation.",
-    "customFunction": "f(x) = votre courbe : faites glisser les points",
+    "errorNote": "Les deux axes sont logarithmiques. Une règle dont l’erreur suit une droite de pente −p réduit son erreur comme 1/n<sup>p</sup> : ordre p. Doubler n divise alors l’erreur par 2<sup>p</sup>.",
+    "customFunction": "Votre courbe (faites glisser les points)",
     "curvePoint": "Point de la courbe en x =",
     "newChallenge": "Nouveau défi",
     "check": "Vérifier",
     "challengePrompt": "Moins de sous-intervalles pour une erreur {{method}} < {{tolerance}} ?",
     "correct": "Correct : c’est le minimum.",
     "tooFew": "Pas encore : l’erreur est encore trop grande.",
-    "tooMany": "Ça marche, mais moins suffirait."
+    "tooMany": "Ça marche, mais moins suffirait.",
+    "function": "Fonction",
+    "rule": "Règle",
+    "simpson": "Simpson",
+    "upper": "Supérieure",
+    "lower": "Inférieure",
+    "bounds": "Bornes",
+    "boundA": "Borne inférieure a",
+    "boundB": "Borne supérieure b",
+    "totalArea": "Aire totale : somme de |f| au lieu de f",
+    "exactTotal": "Aire totale exacte",
+    "pieces": "Somme de {{count}} morceaux",
+    "order": "ordre"
   }
 }

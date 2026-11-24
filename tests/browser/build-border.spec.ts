@@ -23,6 +23,6 @@ test("the keyboard slider follows the selected border's limits", async ({ page }
   await page.getByRole("button", { name: "Next", exact: true }).press("Enter");
   await border.press("Home");
   // Splitting at 0.495 makes the new minimum fall between the slider's 0.01 steps.
-  await expect(border).toHaveAttribute("aria-valuenow", "0.505");
+  await expect(border).toHaveAttribute("aria-valuetext", "0.51");
   expect(errors).toEqual([]);
 });
