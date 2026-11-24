@@ -25,6 +25,7 @@ const methodColors = [
   Colors.quaternaryColorProperty,
 ];
 const dashes = [[], [10, 4], [4, 3], [2, 4]];
+type Handle = ReturnType<LessonView["plot"]["handle"]>;
 
 export class RiemannSumBuilderView extends LessonView {
   public constructor(model: RiemannSumBuilderModel) {
@@ -170,12 +171,52 @@ export class RiemannSumBuilderView extends LessonView {
       () => model.reset(),
     );
 
+    if (!build) {
+      const setPower = (x: number) => {
+        model.power.value = Math.max(0, Math.min(maximumPower, Math.round(this.plot.modelX(x))));
+      };
+      this.plot.onDrag((x) => {
+        model.power.value = Math.max(0, Math.min(maximumPower, Math.round(x)));
+      });
+      this.powerHandle = this.plot.handle({ cursor: "ew-resize", drag: setPower });
+    }
+
     Multilink.multilink([localeProperty, ...dependencies], () => {
       if (build) {
         this.drawPartition(model);
       } else {
         this.drawConvergence(model);
       }
+    });
+  }
+
+  // Pointer-only grips. The border slider and the double/halve buttons own the keyboard path.
+  private readonly borderHandles: Handle[] = [];
+  private readonly powerHandle: Handle | null = null;
+
+  /** Keeps one grip per interior border, placed on the x-axis, and grows or shrinks the pool. */
+  private placeBorderHandles(model: RiemannSumBuilderModel): void {
+    const plot = this.plot;
+    const edges = model.edges.value;
+    while (this.borderHandles.length < edges.length - 2) {
+      const border = this.borderHandles.length + 1;
+      this.borderHandles.push(
+        plot.handle({
+          radius: 7,
+          cursor: "ew-resize",
+          start: () => model.select(border - 1),
+          drag: (x) => model.moveBorder(border, plot.modelX(x)),
+        }),
+      );
+    }
+    while (this.borderHandles.length > edges.length - 2) {
+      const handle = this.borderHandles.pop();
+      if (handle) {
+        plot.removeHandle(handle);
+      }
+    }
+    this.borderHandles.forEach((handle, i) => {
+      handle.place(plot.plotX(edges[i + 1] ?? 0), plot.plotY(0));
     });
   }
 
@@ -250,6 +291,7 @@ export class RiemannSumBuilderView extends LessonView {
       Colors.textColorProperty,
       2,
     );
+    this.placeBorderHandles(model);
   }
 
   private drawConvergence(model: RiemannSumBuilderModel): void {
@@ -272,10 +314,13 @@ export class RiemannSumBuilderView extends LessonView {
       plot.layers.addChild(label);
     }
     const power = model.power.value;
+    const top = Math.max(1, ...methods.map((method) => error(method, 0))) * 1.1;
+    // The grip caps the dashed cursor line, clear of the error markers and tick labels.
+    this.powerHandle?.place(plot.plotX(power), plot.plotY(top));
     plot.line(
       [
         [power, 0],
-        [power, Math.max(1, ...methods.map((method) => error(method, 0))) * 1.1],
+        [power, top],
       ],
       Colors.textColorProperty,
       1,

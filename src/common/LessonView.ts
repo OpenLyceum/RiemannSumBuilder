@@ -1,5 +1,5 @@
 import { DerivedProperty, type NumberProperty, type ReadOnlyProperty, type TReadOnlyProperty } from "scenerystack/axon";
-import { Bounds2, Dimension2, Range } from "scenerystack/dot";
+import { Bounds2, Dimension2, Range, Vector2 } from "scenerystack/dot";
 import { localeProperty } from "scenerystack/joist";
 import { Shape } from "scenerystack/kite";
 import { Circle, DragListener, HBox, Line, Node, Path, Rectangle, Text, VBox } from "scenerystack/scenery";
@@ -94,6 +94,8 @@ export function slider(
 
 class Plot extends Node {
   public readonly layers = new Node();
+  // Handles persist across redraws; `clear()` only empties `layers`.
+  private readonly handles = new Node();
   private readonly axes = new Node();
   private domain: Domain = [-1, 1, -1, 1];
   public readonly widthInPixels = layout.plotWidth;
@@ -112,6 +114,7 @@ class Plot extends Node {
     );
     this.addChild(this.axes);
     this.addChild(this.layers);
+    this.addChild(this.handles);
     this.layers.clipArea = Shape.rect(1, 1, plotWidth - 2, plotHeight - 2);
   }
 
@@ -188,6 +191,27 @@ class Plot extends Node {
     return min + ((max - min) * viewX) / layout.plotWidth;
   }
 
+  public modelY(viewY: number): number {
+    const [, , min, max] = this.domain;
+    return max - ((max - min) * viewY) / layout.plotHeight;
+  }
+
+  /**
+   * Adds a visible grab handle above the redrawn layers. The caller positions it with
+   * `PlotHandle.place()` in plot pixels and receives the pointer's plot-pixel position
+   * (offset so the handle does not jump to the finger) while it is dragged.
+   */
+  public handle(options: HandleOptions): PlotHandle {
+    const handle = new PlotHandle(this, options);
+    this.handles.addChild(handle);
+    return handle;
+  }
+
+  public removeHandle(handle: PlotHandle): void {
+    this.handles.removeChild(handle);
+    handle.dispose();
+  }
+
   public line(
     points: ReadonlyArray<readonly [number, number]>,
     stroke: Paint = Colors.accentColorProperty,
@@ -253,7 +277,75 @@ class Plot extends Node {
         drag: (event) => update(event.pointer.point, false),
       }),
     );
-    this.addChild(input);
+    this.insertChild(this.indexOfChild(this.handles), input);
+  }
+}
+
+type HandleOptions = {
+  fill?: Paint;
+  radius?: number;
+  cursor?: string;
+  start?: () => void;
+  drag: (x: number, y: number) => void;
+};
+
+/**
+ * Pointer-only grab handle. Every quantity a handle moves also has an HSlider in the control
+ * panel, which owns the keyboard path; a RichDragListener here would bind the arrows twice.
+ */
+class PlotHandle extends Node {
+  private readonly listener: DragListener;
+
+  public constructor(plot: Plot, options: HandleOptions) {
+    const radius = options.radius ?? 8;
+    const halo = new Circle(radius + 7, { fill: options.fill ?? Colors.accentColorProperty, opacity: 0.25 });
+    super({
+      cursor: options.cursor ?? "pointer",
+      children: [
+        halo,
+        new Circle(radius, {
+          fill: options.fill ?? Colors.accentColorProperty,
+          stroke: Colors.panelBackgroundColorProperty,
+          lineWidth: 2,
+        }),
+      ],
+    });
+    this.mouseArea = Shape.circle(0, 0, radius + 6);
+    this.touchArea = Shape.circle(0, 0, radius + 16);
+    let offset = Vector2.ZERO;
+    const local = (point: Vector2) => plot.globalToLocalPoint(point);
+    this.listener = new DragListener({
+      start: (event) => {
+        offset = this.translation.minus(local(event.pointer.point));
+        options.start?.();
+      },
+      drag: (event) => {
+        const point = local(event.pointer.point).plus(offset);
+        options.drag(
+          Math.max(0, Math.min(layout.plotWidth, point.x)),
+          Math.max(0, Math.min(layout.plotHeight, point.y)),
+        );
+      },
+    });
+    this.listener.isHighlightedProperty.link((highlighted) => {
+      halo.opacity = highlighted ? 0.45 : 0.25;
+    });
+    this.addInputListener(this.listener);
+  }
+
+  /** Moves the handle to plot pixels and hides it when the point falls off the plot. */
+  public place(x: number, y: number): void {
+    const inside = x >= -1 && x <= layout.plotWidth + 1 && y >= -1 && y <= layout.plotHeight + 1;
+    this.visible = inside && Number.isFinite(x) && Number.isFinite(y);
+    if (this.visible) {
+      this.setTranslation(x, y);
+    }
+  }
+
+  public override dispose(): void {
+    this.removeInputListener(this.listener);
+    this.listener.dispose();
+    super.dispose();
   }
 }
 
