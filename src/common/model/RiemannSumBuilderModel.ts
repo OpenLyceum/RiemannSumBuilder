@@ -39,6 +39,7 @@ function curvatures(knots: readonly number[]): number[] {
   return m;
 }
 
+/** @internal Directly tested numerical helper. */
 export function spline(knots: readonly number[]): (x: number) => number {
   const m = curvatures(knots);
   return (x) => {
@@ -63,6 +64,7 @@ function splineIntegral(knots: readonly number[]): number {
   return total;
 }
 
+/** @internal Directly tested numerical helper. */
 export function evaluate(name: Exclude<Integrand, "custom">, x: number): number {
   if (name === "square") {
     return x * x;
@@ -105,6 +107,7 @@ export type Verdict = "correct" | "tooFew" | "tooMany";
 const tolerances = [0.1, 0.01, 0.001] as const;
 
 /** The smallest refinement power whose error is under the tolerance, or null if none up to the maximum. */
+/** @internal Directly tested numerical helper. */
 export function neededPower({ integrand, method, tolerance }: Challenge): number | null {
   const f = (x: number) => evaluate(integrand, x);
   for (let power = 0; power <= maximumPower; power++) {
