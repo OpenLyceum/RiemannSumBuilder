@@ -55,7 +55,7 @@
     "@types/node": "^26.6.6",
     "dependency-cruiser": "^18.8.0",
     "happy-dom": "^21.0.4",
-    "knip": "^6.47.0",
+    "knip": "^6.46.1",
     "png-to-ico": "^3.0.2",
     "sharp": "^0.35.5",
     "typescript": "^7.0.2",
@@ -80,5 +80,6 @@
   },
   "allowScripts": {
     "@swc/core@1.16.22": true
-  }
+  },
+  "homepage": "https://openlyceum.github.io/RiemannSumBuilder"
 }
