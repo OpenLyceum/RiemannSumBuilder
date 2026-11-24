@@ -42,6 +42,14 @@
     "exact": "Integral con signo exacta",
     "error": "Error absoluto",
     "signed": "Las contribuciones por encima del eje son positivas. Las de abajo son negativas.",
-    "errorNote": "El eje vertical muestra la magnitud del error de cada estimación."
+    "errorNote": "El eje vertical muestra la magnitud del error de cada estimación.",
+    "customFunction": "f(x) = tu curva: arrastra los puntos",
+    "curvePoint": "Punto de la curva en x =",
+    "newChallenge": "Nuevo reto",
+    "check": "Comprobar",
+    "challengePrompt": "¿Menos subintervalos con error de {{method}} < {{tolerance}}?",
+    "correct": "Correcto: es el mínimo.",
+    "tooFew": "Aún no: el error sigue siendo grande.",
+    "tooMany": "Funciona, pero con menos también."
   }
 }

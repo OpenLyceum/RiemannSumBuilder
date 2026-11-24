@@ -2,7 +2,18 @@ import { DerivedProperty, type NumberProperty, type ReadOnlyProperty, type TRead
 import { Bounds2, Dimension2, Range, Vector2 } from "scenerystack/dot";
 import { localeProperty } from "scenerystack/joist";
 import { Shape } from "scenerystack/kite";
-import { Circle, DragListener, HBox, Line, Node, Path, Rectangle, Text, VBox } from "scenerystack/scenery";
+import {
+  Circle,
+  DragListener,
+  HBox,
+  KeyboardDragListener,
+  Line,
+  Node,
+  Path,
+  Rectangle,
+  Text,
+  VBox,
+} from "scenerystack/scenery";
 import { ResetAllButton } from "scenerystack/scenery-phet";
 import { ScreenSummaryContent, ScreenView } from "scenerystack/sim";
 import { HSlider, RectangularPushButton } from "scenerystack/sun";
@@ -287,14 +298,26 @@ type HandleOptions = {
   cursor?: string;
   start?: () => void;
   drag: (x: number, y: number) => void;
+  end?: () => void;
+  // For a quantity with no slider: the handle joins the tab order and the arrow
+  // keys move it by whole steps (Shift for quarter steps), passed as (dx, dy).
+  keyboard?: { name: TReadOnlyProperty<string>; step: (dx: number, dy: number) => void };
+  // Value label shown above the handle while it is hovered or dragged, read on each place().
+  readout?: () => string;
 };
 
 /**
- * Pointer-only grab handle. Every quantity a handle moves also has an HSlider in the control
- * panel, which owns the keyboard path; a RichDragListener here would bind the arrows twice.
+ * Grab handle. By default it is pointer-only, because the quantity it moves also has an
+ * HSlider in the control panel that owns the keyboard path. A handle given `keyboard`
+ * options has no slider behind it, so it takes focus and the arrow keys itself.
  */
 class PlotHandle extends Node {
   private readonly listener: DragListener;
+  private readonly keyboardListener: KeyboardDragListener | null = null;
+  private readonly readout: (() => string) | null;
+  private readonly label: Text;
+  private readonly labelBox: Rectangle;
+  private readonly radius: number;
 
   public constructor(plot: Plot, options: HandleOptions) {
     const radius = options.radius ?? 8;
@@ -310,6 +333,19 @@ class PlotHandle extends Node {
         }),
       ],
     });
+    this.radius = radius;
+    this.readout = options.readout ?? null;
+    this.label = new Text("", { font: "bold 13px sans-serif", fill: Colors.textColorProperty });
+    this.labelBox = new Rectangle(0, 0, 1, 1, {
+      cornerRadius: 4,
+      fill: Colors.panelBackgroundColorProperty,
+      opacity: 0.9,
+      pickable: false,
+      visible: false,
+      children: [this.label],
+    });
+    this.excludeInvisibleChildrenFromBounds = true;
+    this.addChild(this.labelBox);
     this.mouseArea = Shape.circle(0, 0, radius + 6);
     this.touchArea = Shape.circle(0, 0, radius + 16);
     let offset = Vector2.ZERO;
@@ -326,11 +362,27 @@ class PlotHandle extends Node {
           Math.max(0, Math.min(layout.plotHeight, point.y)),
         );
       },
+      end: () => options.end?.(),
     });
     this.listener.isHighlightedProperty.link((highlighted) => {
       halo.opacity = highlighted ? 0.45 : 0.25;
+      this.labelBox.visible = highlighted && this.readout !== null;
+      this.updateLabel();
     });
     this.addInputListener(this.listener);
+    const keyboard = options.keyboard;
+    if (keyboard) {
+      this.tagName = "div";
+      this.focusable = true;
+      this.accessibleName = keyboard.name;
+      this.accessibleRoleDescription = "movable";
+      this.keyboardListener = new KeyboardDragListener({
+        dragDelta: 1,
+        shiftDragDelta: 0.25,
+        drag: (_event, listener) => keyboard.step(listener.modelDelta.x, -listener.modelDelta.y),
+      });
+      this.addInputListener(this.keyboardListener);
+    }
   }
 
   /** Moves the handle to plot pixels and hides it when the point falls off the plot. */
@@ -339,12 +391,38 @@ class PlotHandle extends Node {
     this.visible = inside && Number.isFinite(x) && Number.isFinite(y);
     if (this.visible) {
       this.setTranslation(x, y);
+      this.updateLabel();
+    }
+  }
+
+  /** Refreshes the readout and keeps it on the plot: above the handle, or below it near the top. */
+  private updateLabel(): void {
+    if (!(this.readout && this.labelBox.visible)) {
+      return;
+    }
+    this.label.string = this.readout();
+    this.labelBox.setRect(0, 0, this.label.width + 10, this.label.height + 4);
+    this.label.center = this.labelBox.localBounds.center;
+    const gap = this.radius + 10;
+    const above = this.y - gap - this.labelBox.height >= 0;
+    this.labelBox.centerX = Math.max(
+      this.labelBox.width / 2 - this.x,
+      Math.min(layout.plotWidth - this.x - this.labelBox.width / 2, 0),
+    );
+    if (above) {
+      this.labelBox.bottom = -gap;
+    } else {
+      this.labelBox.top = gap;
     }
   }
 
   public override dispose(): void {
     this.removeInputListener(this.listener);
     this.listener.dispose();
+    if (this.keyboardListener) {
+      this.removeInputListener(this.keyboardListener);
+      this.keyboardListener.dispose();
+    }
     super.dispose();
   }
 }

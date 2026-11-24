@@ -42,6 +42,14 @@
     "exact": "Intégrale algébrique exacte",
     "error": "Erreur absolue",
     "signed": "Les contributions au-dessus de l’axe sont positives. Celles sous l’axe sont négatives.",
-    "errorNote": "L’axe vertical montre la valeur absolue de l’erreur de chaque estimation."
+    "errorNote": "L’axe vertical montre la valeur absolue de l’erreur de chaque estimation.",
+    "customFunction": "f(x) = votre courbe : faites glisser les points",
+    "curvePoint": "Point de la courbe en x =",
+    "newChallenge": "Nouveau défi",
+    "check": "Vérifier",
+    "challengePrompt": "Moins de sous-intervalles pour une erreur {{method}} < {{tolerance}} ?",
+    "correct": "Correct : c’est le minimum.",
+    "tooFew": "Pas encore : l’erreur est encore trop grande.",
+    "tooMany": "Ça marche, mais moins suffirait."
   }
 }

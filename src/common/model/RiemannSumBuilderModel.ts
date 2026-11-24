@@ -1,17 +1,69 @@
 import { NumberProperty, Property } from "scenerystack/axon";
-import { Range } from "scenerystack/dot";
+import { dotRandom, Range, toFixed } from "scenerystack/dot";
 import type { TModel } from "scenerystack/joist";
 
-export const functions = ["square", "line", "arch"] as const;
+export const functions = ["square", "line", "arch", "custom"] as const;
 export type Integrand = (typeof functions)[number];
 export const methods = ["left", "right", "midpoint", "trapezoid"] as const;
 export type Method = (typeof methods)[number];
 
-export const integral: Record<Integrand, number> = { square: 8 / 3, line: 0, arch: 4 / 3 };
+const integrals = { square: 8 / 3, line: 0, arch: 4 / 3 };
 const minimumWidth = 0.01;
 export const maximumPower = 7;
 
-export function evaluate(name: Integrand, x: number): number {
+/** The custom integrand passes through these points, one above each x in knotXs. */
+export const knotXs = [0, 0.5, 1, 1.5, 2] as const;
+const knotRange = new Range(-1.2, 4.3);
+const knotSpacing = 0.5;
+const knotStep = 0.05;
+
+/**
+ * Second derivatives of the natural cubic spline through equally spaced
+ * knots (zero at both ends), from the tridiagonal continuity equations.
+ */
+function curvatures(knots: readonly number[]): number[] {
+  const n = knots.length;
+  const y = (i: number) => knots[i] ?? 0;
+  const diagonal: number[] = [];
+  const rhs: number[] = [];
+  for (let i = 1; i < n - 1; i++) {
+    const r = (6 / knotSpacing ** 2) * (y(i - 1) - 2 * y(i) + y(i + 1));
+    const previous = i > 1 ? 1 / (diagonal[i - 2] ?? 4) : 0;
+    diagonal.push(4 - previous);
+    rhs.push(r - previous * (rhs[i - 2] ?? 0));
+  }
+  const m = new Array<number>(n).fill(0);
+  for (let i = n - 2; i >= 1; i--) {
+    m[i] = ((rhs[i - 1] ?? 0) - (m[i + 1] ?? 0)) / (diagonal[i - 1] ?? 4);
+  }
+  return m;
+}
+
+export function spline(knots: readonly number[]): (x: number) => number {
+  const m = curvatures(knots);
+  return (x) => {
+    const i = Math.max(0, Math.min(knots.length - 2, Math.floor(x / knotSpacing)));
+    const t = x / knotSpacing - i;
+    const u = 1 - t;
+    const a = knots[i] ?? 0;
+    const b = knots[i + 1] ?? 0;
+    return u * a + t * b + (knotSpacing ** 2 / 6) * ((u ** 3 - u) * (m[i] ?? 0) + (t ** 3 - t) * (m[i + 1] ?? 0));
+  };
+}
+
+/** Exact integral of the natural spline over [0, 2], interval by interval. */
+function splineIntegral(knots: readonly number[]): number {
+  const m = curvatures(knots);
+  let total = 0;
+  for (let i = 0; i < knots.length - 1; i++) {
+    total +=
+      (knotSpacing * ((knots[i] ?? 0) + (knots[i + 1] ?? 0))) / 2 -
+      (knotSpacing ** 3 / 24) * ((m[i] ?? 0) + (m[i + 1] ?? 0));
+  }
+  return total;
+}
+
+export function evaluate(name: Exclude<Integrand, "custom">, x: number): number {
   if (name === "square") {
     return x * x;
   }
@@ -35,13 +87,32 @@ export function sample(method: Method, a: number, b: number): number {
   return (a + b) / 2;
 }
 
-export function sum(name: Integrand, method: Method, edges: readonly number[]): number {
+export function sum(f: (x: number) => number, method: Method, edges: readonly number[]): number {
   return edges.slice(1).reduce((total, b, i) => {
     const a = edges[i] ?? 0;
-    const height =
-      method === "trapezoid" ? (evaluate(name, a) + evaluate(name, b)) / 2 : evaluate(name, sample(method, a, b));
+    const height = method === "trapezoid" ? (f(a) + f(b)) / 2 : f(sample(method, a, b));
     return total + (b - a) * height;
   }, 0);
+}
+
+/** Convergence challenge: the fewest subintervals (a power of 2) that bring one rule's error under a tolerance. */
+export type Challenge = {
+  readonly integrand: Exclude<Integrand, "custom">;
+  readonly method: Method;
+  readonly tolerance: number;
+};
+export type Verdict = "correct" | "tooFew" | "tooMany";
+const tolerances = [0.1, 0.01, 0.001] as const;
+
+/** The smallest refinement power whose error is under the tolerance, or null if none up to the maximum. */
+export function neededPower({ integrand, method, tolerance }: Challenge): number | null {
+  const f = (x: number) => evaluate(integrand, x);
+  for (let power = 0; power <= maximumPower; power++) {
+    if (Math.abs(sum(f, method, uniform(2 ** power)) - integrals[integrand]) < tolerance) {
+      return power;
+    }
+  }
+  return null;
 }
 
 export class RiemannSumBuilderModel implements TModel {
@@ -50,11 +121,72 @@ export class RiemannSumBuilderModel implements TModel {
   public readonly edges = new Property<readonly number[]>(uniform(4));
   public readonly selected = new NumberProperty(0);
   public readonly power = new NumberProperty(0);
+  public readonly knots = new Property<readonly number[]>([1, 2.5, 0.5, -0.5, 2]);
+  public readonly challenge = new Property<Challenge | null>(null);
+  public readonly verdict = new Property<Verdict | null>(null);
 
   public readonly mode: "build" | "convergence";
 
   public constructor(mode: "build" | "convergence") {
     this.mode = mode;
+    // A new answer or a different function ends the old verdict; a different function ends the challenge.
+    this.power.lazyLink(() => {
+      this.verdict.value = null;
+    });
+    this.integrand.lazyLink((integrand) => {
+      if (this.challenge.value && integrand !== this.challenge.value.integrand) {
+        this.challenge.value = null;
+      }
+      this.verdict.value = null;
+    });
+  }
+
+  /** Picks a function, rule, and tolerance that needs at least 4 subintervals and no more than the maximum. */
+  public newChallenge(): void {
+    const names = functions.filter((name): name is Challenge["integrand"] => name !== "custom");
+    let challenge: Challenge;
+    let needed: number | null;
+    do {
+      challenge = {
+        integrand: dotRandom.sample(names),
+        method: dotRandom.sample([...methods]),
+        tolerance: dotRandom.sample([...tolerances]),
+      };
+      needed = neededPower(challenge);
+    } while (needed === null || needed < 2);
+    this.challenge.value = null;
+    this.integrand.value = challenge.integrand;
+    this.power.value = 0;
+    this.challenge.value = challenge;
+    this.verdict.value = null;
+  }
+
+  public checkChallenge(): void {
+    const challenge = this.challenge.value;
+    const needed = challenge && neededPower(challenge);
+    if (needed === null || needed === undefined) {
+      return;
+    }
+    const power = this.power.value;
+    this.verdict.value = power === needed ? "correct" : power < needed ? "tooFew" : "tooMany";
+  }
+
+  /** The integrand as a function, including the student's own curve. */
+  public get f(): (x: number) => number {
+    const name = this.integrand.value;
+    return name === "custom" ? spline(this.knots.value) : (x) => evaluate(name, x);
+  }
+
+  public get exact(): number {
+    const name = this.integrand.value;
+    return name === "custom" ? splineIntegral(this.knots.value) : integrals[name];
+  }
+
+  public moveKnot(index: number, y: number): void {
+    const value = knotRange.constrainValue(Number(toFixed(Math.round(y / knotStep) * knotStep, 2)));
+    if (value !== this.knots.value[index]) {
+      this.knots.value = this.knots.value.map((knot, i) => (i === index ? value : knot));
+    }
   }
 
   public get partition(): readonly number[] {
@@ -118,6 +250,9 @@ export class RiemannSumBuilderModel implements TModel {
     this.integrand.reset();
     this.method.reset();
     this.power.reset();
+    this.knots.reset();
+    this.challenge.reset();
+    this.verdict.reset();
   }
 
   public dispose(): void {
@@ -126,5 +261,8 @@ export class RiemannSumBuilderModel implements TModel {
     this.edges.dispose();
     this.selected.dispose();
     this.power.dispose();
+    this.knots.dispose();
+    this.challenge.dispose();
+    this.verdict.dispose();
   }
 }

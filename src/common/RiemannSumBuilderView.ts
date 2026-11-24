@@ -1,13 +1,15 @@
 import { Multilink, NumberProperty, Property } from "scenerystack/axon";
 import { Range } from "scenerystack/dot";
 import { localeProperty } from "scenerystack/joist";
+import { StringUtils } from "scenerystack/phetcommon";
+import type { Node } from "scenerystack/scenery";
 import { StringManager } from "../i18n/StringManager.js";
 import Colors from "../RiemannSumBuilderColors.js";
 import { button, column, computed, format, LessonView, row, slider, text } from "./LessonView.js";
 import {
-  evaluate,
   functions,
-  integral,
+  type Integrand,
+  knotXs,
   maximumPower,
   methods,
   type RiemannSumBuilderModel,
@@ -18,6 +20,8 @@ import {
 
 const fractions = { square: "8/3", line: "0", arch: "4/3" };
 const formulas = { square: "f(x) = x²", line: "f(x) = x − 1", arch: "f(x) = 2x − x²" };
+// Each arrow-key press moves a curve point by this much (Shift: a quarter of it).
+const KNOT_KEY_STEP = 0.2;
 const methodColors = [
   Colors.accentColorProperty,
   Colors.secondaryColorProperty,
@@ -34,8 +38,17 @@ export class RiemannSumBuilderView extends LessonView {
     const strings = manager.getLessonStrings();
     const build = model.mode === "build";
     const summary = (build ? manager.getBuildA11yStrings() : manager.getConvergenceA11yStrings()).screenSummary;
-    const dependencies = [model.integrand, model.method, model.edges, model.selected, model.power] as const;
-    const formula = computed([model.integrand], () => formulas[model.integrand.value]);
+    const dependencies = [
+      model.integrand,
+      model.method,
+      model.edges,
+      model.selected,
+      model.power,
+      model.knots,
+    ] as const;
+    const formula = computed([model.integrand, strings.customFunctionStringProperty], () =>
+      model.integrand.value === "custom" ? strings.customFunctionStringProperty.value : formulas[model.integrand.value],
+    );
     const count = computed(
       [...dependencies],
       () => `${strings.countStringProperty.value}  ${model.partition.length - 1}`,
@@ -44,13 +57,13 @@ export class RiemannSumBuilderView extends LessonView {
       const i = model.selected.value;
       return `${strings.selectionStringProperty.value}  ${i + 1}  [${format(model.edges.value[i] ?? 0)}, ${format(model.edges.value[i + 1] ?? 2)}]`;
     });
-    const exact = computed(
-      [model.integrand],
-      () => `${strings.exactStringProperty.value}  ${fractions[model.integrand.value]}`,
-    );
+    const exact = computed([model.integrand, model.knots], () => {
+      const name = model.integrand.value;
+      return `${strings.exactStringProperty.value}  ${name === "custom" ? format(model.exact, 4) : fractions[name]}`;
+    });
     const comparison = (comparisonMethod: (typeof methods)[number]) => {
-      const value = sum(model.integrand.value, comparisonMethod, model.partition);
-      const error = Math.abs(value - integral[model.integrand.value]);
+      const value = sum(model.f, comparisonMethod, model.partition);
+      const error = Math.abs(value - model.exact);
       const prefix = strings[`${comparisonMethod}StringProperty`].value;
       return build
         ? `${prefix}  ${format(value, 6)}`
@@ -146,8 +159,10 @@ export class RiemannSumBuilderView extends LessonView {
       column(
         text(formula, 19, 286, true),
         button(strings.changeFunctionStringProperty, () => {
-          model.integrand.value =
-            functions[(functions.indexOf(model.integrand.value) + 1) % functions.length] ?? "square";
+          // The custom curve is shaped on the build screen's graph, so the
+          // convergence screen cycles through the named functions only.
+          const choices: readonly Integrand[] = build ? functions : functions.filter((name) => name !== "custom");
+          model.integrand.value = choices[(choices.indexOf(model.integrand.value) + 1) % choices.length] ?? "square";
         }),
         text(count, 16, 286, true),
         ...(build
@@ -163,7 +178,7 @@ export class RiemannSumBuilderView extends LessonView {
               row(split, merge),
               borderSlider,
             ]
-          : [row(halve, double)]),
+          : [row(halve, double), ...this.challengeControls(model)]),
         text(exact, 16, 286, true),
         ...estimates,
       ),
@@ -172,13 +187,47 @@ export class RiemannSumBuilderView extends LessonView {
     );
 
     if (!build) {
+      // The grip glides with the pointer while the dashed line marks the
+      // count it will snap to on release.
       const setPower = (x: number) => {
-        model.power.value = Math.max(0, Math.min(maximumPower, Math.round(this.plot.modelX(x))));
+        this.powerDragX = x;
+        const power = Math.max(0, Math.min(maximumPower, Math.round(this.plot.modelX(x))));
+        if (power === model.power.value) {
+          this.drawConvergence(model);
+        } else {
+          model.power.value = power;
+        }
       };
       this.plot.onDrag((x) => {
         model.power.value = Math.max(0, Math.min(maximumPower, Math.round(x)));
       });
-      this.powerHandle = this.plot.handle({ cursor: "ew-resize", drag: setPower });
+      this.powerHandle = this.plot.handle({
+        cursor: "ew-resize",
+        drag: setPower,
+        end: () => {
+          this.powerDragX = null;
+          this.drawConvergence(model);
+        },
+        readout: () => `n = ${format(2 ** model.power.value)}`,
+      });
+    }
+
+    if (build) {
+      this.knotHandles = knotXs.map((x, index) =>
+        this.plot.handle({
+          fill: Colors.tertiaryColorProperty,
+          cursor: "ns-resize",
+          drag: (_x, y) => model.moveKnot(index, this.plot.modelY(y)),
+          readout: () => `f(${format(x)}) = ${format(model.knots.value[index] ?? 0)}`,
+          keyboard: {
+            name: computed(
+              [strings.curvePointStringProperty],
+              () => `${strings.curvePointStringProperty.value} ${format(x)}`,
+            ),
+            step: (_dx, dy) => model.moveKnot(index, (model.knots.value[index] ?? 0) + dy * KNOT_KEY_STEP),
+          },
+        }),
+      );
     }
 
     Multilink.multilink([localeProperty, ...dependencies], () => {
@@ -190,9 +239,41 @@ export class RiemannSumBuilderView extends LessonView {
     });
   }
 
+  /** Convergence challenge: a prompt, a check button, and the verdict. */
+  private challengeControls(model: RiemannSumBuilderModel): Node[] {
+    const strings = StringManager.getInstance().getLessonStrings();
+    const check = button(strings.checkStringProperty, () => model.checkChallenge());
+    model.challenge.link((challenge) => {
+      check.enabled = challenge !== null;
+    });
+    const prompt = computed([model.challenge, strings.challengePromptStringProperty], () => {
+      const challenge = model.challenge.value;
+      return challenge
+        ? StringUtils.fillIn(strings.challengePromptStringProperty.value, {
+            method: strings[`${challenge.method}StringProperty`].value,
+            tolerance: format(challenge.tolerance, 3),
+          })
+        : "";
+    });
+    const verdict = computed([model.verdict], () =>
+      model.verdict.value ? strings[`${model.verdict.value}StringProperty`].value : "",
+    );
+    return [
+      row(
+        button(strings.newChallengeStringProperty, () => model.newChallenge()),
+        check,
+      ),
+      text(prompt, 14),
+      text(verdict, 15, 298, true),
+    ];
+  }
+
   // Pointer-only grips. The border slider and the double/halve buttons own the keyboard path.
   private readonly borderHandles: Handle[] = [];
   private readonly powerHandle: Handle | null = null;
+  private powerDragX: number | null = null;
+  // The custom curve's points have no slider, so these grips also take the keyboard.
+  private readonly knotHandles: Handle[] = [];
 
   /** Keeps one grip per interior border, placed on the x-axis, and grows or shrinks the pool. */
   private placeBorderHandles(model: RiemannSumBuilderModel): void {
@@ -206,6 +287,7 @@ export class RiemannSumBuilderView extends LessonView {
           cursor: "ew-resize",
           start: () => model.select(border - 1),
           drag: (x) => model.moveBorder(border, plot.modelX(x)),
+          readout: () => `x = ${format(model.edges.value[border] ?? 0)}`,
         }),
       );
     }
@@ -223,16 +305,16 @@ export class RiemannSumBuilderView extends LessonView {
   private drawPartition(model: RiemannSumBuilderModel): void {
     const plot = this.plot;
     const edges = model.partition;
-    const name = model.integrand.value;
+    const f = model.f;
     const method = model.method.value;
     plot.setDomain([-0.13, 2.13, -1.35, 4.5], "x", "f(x)", [0, 0.5, 1, 1.5, 2], [-1, 0, 1, 2, 3, 4]);
     plot.clear();
     edges.slice(1).forEach((b, i) => {
       const a = edges[i] ?? 0;
       const x = sample(method, a, b);
-      const y = evaluate(name, x);
-      const left = method === "trapezoid" ? evaluate(name, a) : y;
-      const right = method === "trapezoid" ? evaluate(name, b) : y;
+      const y = f(x);
+      const left = method === "trapezoid" ? f(a) : y;
+      const right = method === "trapezoid" ? f(b) : y;
       const stroke = i === model.selected.value ? Colors.secondaryColorProperty : Colors.accentColorProperty;
       const fill = (height: number) =>
         height < 0 ? Colors.negativeFillColorProperty : Colors.positiveFillColorProperty;
@@ -287,19 +369,25 @@ export class RiemannSumBuilderView extends LessonView {
       }
     });
     plot.line(
-      Array.from({ length: 201 }, (_, i) => [i / 100, evaluate(name, i / 100)]),
+      Array.from({ length: 201 }, (_, i) => [i / 100, f(i / 100)]),
       Colors.textColorProperty,
       2,
     );
     this.placeBorderHandles(model);
+    const custom = model.integrand.value === "custom";
+    this.knotHandles.forEach((handle, i) => {
+      handle.place(plot.plotX(knotXs[i] ?? 0), plot.plotY(model.knots.value[i] ?? 0));
+      handle.visible = handle.visible && custom;
+    });
   }
 
   private drawConvergence(model: RiemannSumBuilderModel): void {
     const plot = this.plot;
     const strings = StringManager.getInstance().getLessonStrings();
-    const name = model.integrand.value;
+    const f = model.f;
+    const exact = model.exact;
     const error = (method: (typeof methods)[number], refinement: number) =>
-      Math.abs(sum(name, method, uniform(2 ** refinement)) - integral[name]);
+      Math.abs(sum(f, method, uniform(2 ** refinement)) - exact);
     plot.setDomain(
       [0, maximumPower, -0.15, Math.max(1, ...methods.map((method) => error(method, 0))) * 1.15],
       strings.countStringProperty,
@@ -316,7 +404,7 @@ export class RiemannSumBuilderView extends LessonView {
     const power = model.power.value;
     const top = Math.max(1, ...methods.map((method) => error(method, 0))) * 1.1;
     // The grip caps the dashed cursor line, clear of the error markers and tick labels.
-    this.powerHandle?.place(plot.plotX(power), plot.plotY(top));
+    this.powerHandle?.place(this.powerDragX ?? plot.plotX(power), plot.plotY(top));
     plot.line(
       [
         [power, 0],

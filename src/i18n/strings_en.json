@@ -42,6 +42,14 @@
     "exact": "Exact signed integral",
     "error": "Absolute error",
     "signed": "Contributions above the axis are positive. Contributions below it are negative.",
-    "errorNote": "The vertical axis shows the magnitude of each estimate’s error."
+    "errorNote": "The vertical axis shows the magnitude of each estimate’s error.",
+    "customFunction": "f(x) = your curve: drag the points",
+    "curvePoint": "Curve point at x =",
+    "newChallenge": "New challenge",
+    "check": "Check",
+    "challengePrompt": "Fewest subintervals for {{method}} error < {{tolerance}}?",
+    "correct": "Correct: that is the fewest.",
+    "tooFew": "Not yet: the error is still too large.",
+    "tooMany": "That works, but fewer would too."
   }
 }
