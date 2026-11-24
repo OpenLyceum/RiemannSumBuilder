@@ -172,7 +172,9 @@ export class RiemannSumBuilderView extends LessonView {
         valueComparisonStrategy: "equalsFunction",
       });
       let syncing = false;
+      // Set while a slider drives the partition, so the sync below does not write it back mid-notification.
       let countDriving = false;
+      let borderDriving = false;
       const borderIndex = () => Math.min(model.selected.value + 1, model.edges.value.length - 2);
       // The border slider runs over [0, 1] as a fraction of [a, b], so one slider serves every
       // function and bound; its caption and spoken value show the border's x.
@@ -204,7 +206,9 @@ export class RiemannSumBuilderView extends LessonView {
         const index = borderIndex();
         const range = model.borderRange(index);
         borderRangeProperty.value = range ? new Range(toFraction(range.min), toFraction(range.max)) : new Range(0, 1);
-        borderProperty.value = Math.max(0, Math.min(1, toFraction(edges[index] ?? 0)));
+        if (!borderDriving) {
+          borderProperty.value = Math.max(0, Math.min(1, toFraction(edges[index] ?? 0)));
+        }
         // Leave the count alone while it is the one driving this change: writing it back
         // from inside its own listener would re-enter it.
         if (!countDriving) {
@@ -219,7 +223,9 @@ export class RiemannSumBuilderView extends LessonView {
       });
       borderProperty.lazyLink((x) => {
         if (!syncing) {
+          borderDriving = true;
           model.moveBorder(borderIndex(), toX(x));
+          borderDriving = false;
         }
       });
       countProperty.lazyLink((n) => {

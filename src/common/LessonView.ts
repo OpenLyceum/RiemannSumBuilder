@@ -275,19 +275,27 @@ export function slider(
  */
 type TickLabels = { x?: (value: number) => string; y?: (value: number) => string; axes?: boolean };
 
-class Plot extends Node {
+/**
+ * A rectangular graph: grid and tick labels, a clipped drawing layer, and grab handles.
+ * LessonView owns the main one; a view may add a second, smaller one (for example a
+ * derivative graph under the main graph) with `new Plot(width, height)`.
+ *
+ * @public
+ */
+export class Plot extends Node {
   public readonly layers = new Node();
   // Handles persist across redraws; `clear()` only empties `layers`.
   private readonly handles = new Node();
   private readonly axes = new Node();
   private domain: Domain = [-1, 1, -1, 1];
   private axesKey = "";
-  public readonly widthInPixels = layout.plotWidth;
-  public readonly heightInPixels = layout.plotHeight;
+  public readonly widthInPixels: number;
+  public readonly heightInPixels: number;
 
-  public constructor() {
+  public constructor(plotWidth = layout.plotWidth, plotHeight = layout.plotHeight) {
     super();
-    const { plotWidth, plotHeight } = layout;
+    this.widthInPixels = plotWidth;
+    this.heightInPixels = plotHeight;
     this.addChild(
       new Rectangle(0, 0, plotWidth, plotHeight, {
         fill: Colors.panelBackgroundColorProperty,
@@ -339,37 +347,37 @@ class Plot extends Node {
     const inset = 6;
     for (const value of xs) {
       const x = this.plotX(value);
-      this.axes.addChild(new Line(x, 0, x, layout.plotHeight, { stroke: Colors.panelBorderColorProperty }));
+      this.axes.addChild(new Line(x, 0, x, this.heightInPixels, { stroke: Colors.panelBorderColorProperty }));
       const tick = richText(labels.x ? labels.x(value) : format(value, 3), 11, 62);
-      tick.centerX = Math.max(tick.width / 2 + inset, Math.min(layout.plotWidth - tick.width / 2 - inset, x));
-      tick.bottom = layout.plotHeight - inset;
+      tick.centerX = Math.max(tick.width / 2 + inset, Math.min(this.widthInPixels - tick.width / 2 - inset, x));
+      tick.bottom = this.heightInPixels - inset;
       this.axes.addChild(tick);
     }
     for (const value of ys) {
       const y = this.plotY(value);
-      this.axes.addChild(new Line(0, y, layout.plotWidth, y, { stroke: Colors.panelBorderColorProperty }));
+      this.axes.addChild(new Line(0, y, this.widthInPixels, y, { stroke: Colors.panelBorderColorProperty }));
       const tick = richText(labels.y ? labels.y(value) : format(value, 2), 11, 62);
       tick.left = inset;
-      tick.centerY = Math.max(12, Math.min(layout.plotHeight - 26, y));
+      tick.centerY = Math.max(12, Math.min(this.heightInPixels - 26, y));
       this.axes.addChild(tick);
     }
     if (labels.axes !== false) {
       this.axes.addChild(
-        new Line(inset, horizontal, layout.plotWidth - inset, horizontal, {
+        new Line(inset, horizontal, this.widthInPixels - inset, horizontal, {
           stroke: Colors.textColorProperty,
           lineWidth: 1,
         }),
       );
       this.axes.addChild(
-        new Line(vertical, inset, vertical, layout.plotHeight - inset, {
+        new Line(vertical, inset, vertical, this.heightInPixels - inset, {
           stroke: Colors.textColorProperty,
           lineWidth: 1,
         }),
       );
     }
     const xLabel = richText(xAxis, 13, 125, true);
-    xLabel.right = layout.plotWidth - 12;
-    xLabel.bottom = layout.plotHeight - 24;
+    xLabel.right = this.widthInPixels - 12;
+    xLabel.bottom = this.heightInPixels - 24;
     const yLabel = richText(yAxis, 13, 140, true);
     yLabel.left = 48;
     yLabel.top = 9;
@@ -386,22 +394,22 @@ class Plot extends Node {
 
   public plotX(value: number): number {
     const [min, max] = this.domain;
-    return ((value - min) / (max - min)) * layout.plotWidth;
+    return ((value - min) / (max - min)) * this.widthInPixels;
   }
 
   public plotY(value: number): number {
     const [, , min, max] = this.domain;
-    return ((max - value) / (max - min)) * layout.plotHeight;
+    return ((max - value) / (max - min)) * this.heightInPixels;
   }
 
   public modelX(viewX: number): number {
     const [min, max] = this.domain;
-    return min + ((max - min) * viewX) / layout.plotWidth;
+    return min + ((max - min) * viewX) / this.widthInPixels;
   }
 
   public modelY(viewY: number): number {
     const [, , min, max] = this.domain;
-    return max - ((max - min) * viewY) / layout.plotHeight;
+    return max - ((max - min) * viewY) / this.heightInPixels;
   }
 
   /**
@@ -485,15 +493,15 @@ class Plot extends Node {
   }
 
   public onDrag(callback: (x: number, y: number, start: boolean) => void): void {
-    const input = new Rectangle(0, 0, layout.plotWidth, layout.plotHeight, {
+    const input = new Rectangle(0, 0, this.widthInPixels, this.heightInPixels, {
       fill: "transparent",
       cursor: "ew-resize",
     });
-    input.mouseArea = new Bounds2(0, 0, layout.plotWidth, layout.plotHeight);
+    input.mouseArea = new Bounds2(0, 0, this.widthInPixels, this.heightInPixels);
     const update = (point: Parameters<Node["globalToLocalPoint"]>[0], start: boolean) => {
       const local = this.globalToLocalPoint(point);
       const [, , min, max] = this.domain;
-      callback(this.modelX(local.x), max - ((max - min) * local.y) / layout.plotHeight, start);
+      callback(this.modelX(local.x), max - ((max - min) * local.y) / this.heightInPixels, start);
     };
     input.addInputListener(
       new DragListener({
@@ -536,6 +544,8 @@ class PlotHandle extends Node {
   private readonly label: Text;
   private readonly labelBox: Rectangle;
   private readonly radius: number;
+  private readonly plotWidth: number;
+  private readonly plotHeight: number;
 
   public constructor(plot: Plot, options: HandleOptions) {
     const radius = options.radius ?? 8;
@@ -552,6 +562,8 @@ class PlotHandle extends Node {
       ],
     });
     this.radius = radius;
+    this.plotWidth = plot.widthInPixels;
+    this.plotHeight = plot.heightInPixels;
     this.readout = options.readout ?? null;
     this.label = new Text("", { font: "bold 13px sans-serif", fill: Colors.textColorProperty });
     this.labelBox = new Rectangle(0, 0, 1, 1, {
@@ -575,10 +587,7 @@ class PlotHandle extends Node {
       },
       drag: (event) => {
         const point = local(event.pointer.point).plus(offset);
-        options.drag(
-          Math.max(0, Math.min(layout.plotWidth, point.x)),
-          Math.max(0, Math.min(layout.plotHeight, point.y)),
-        );
+        options.drag(Math.max(0, Math.min(this.plotWidth, point.x)), Math.max(0, Math.min(this.plotHeight, point.y)));
       },
       end: () => options.end?.(),
     });
@@ -606,7 +615,7 @@ class PlotHandle extends Node {
 
   /** Moves the handle to plot pixels and hides it when the point falls off the plot. */
   public place(x: number, y: number): void {
-    const inside = x >= -1 && x <= layout.plotWidth + 1 && y >= -1 && y <= layout.plotHeight + 1;
+    const inside = x >= -1 && x <= this.plotWidth + 1 && y >= -1 && y <= this.plotHeight + 1;
     this.visible = inside && Number.isFinite(x) && Number.isFinite(y);
     if (this.visible) {
       this.setTranslation(x, y);
@@ -626,7 +635,7 @@ class PlotHandle extends Node {
     const above = this.y - gap - this.labelBox.height >= 0;
     this.labelBox.centerX = Math.max(
       this.labelBox.width / 2 - this.x,
-      Math.min(layout.plotWidth - this.x - this.labelBox.width / 2, 0),
+      Math.min(this.plotWidth - this.x - this.labelBox.width / 2, 0),
     );
     if (above) {
       this.labelBox.bottom = -gap;
@@ -648,6 +657,8 @@ class PlotHandle extends Node {
 
 type LessonOptions = {
   title: ReadOnlyProperty<string>;
+  /** Height of the main plot in pixels; a shorter plot leaves room for a second graph under it. */
+  plotHeight?: number;
   playDescription: ReadOnlyProperty<string>;
   hint: ReadOnlyProperty<string>;
   details: ReadOnlyProperty<string>;
@@ -655,7 +666,7 @@ type LessonOptions = {
 };
 
 export class LessonView extends ScreenView {
-  public readonly plot = new Plot();
+  public readonly plot: Plot;
   /** Parent for open combo-box lists; `finish()` puts it on top of everything. */
   protected readonly listParent = new Node();
 
@@ -668,6 +679,7 @@ export class LessonView extends ScreenView {
         interactionHintContent: options.hint,
       }),
     });
+    this.plot = new Plot(layout.plotWidth, options.plotHeight ?? layout.plotHeight);
     const title = text(options.title, 34, 920, true);
     title.left = layout.inset;
     title.top = 24;
@@ -699,7 +711,7 @@ export class LessonView extends ScreenView {
       top: layout.top,
     });
     notes.left = layout.inset;
-    notes.top = layout.top + layout.plotHeight + 14;
+    notes.top = layout.top + this.plot.heightInPixels + 14;
     const resetButton = new ResetAllButton({
       ...FLAT_RESET_ALL_BUTTON_OPTIONS,
       listener: reset,
