@@ -1,10 +1,10 @@
 /**
  * LessonView.ts
  *
- * Canonical lesson scaffold shared, file for file, by the Calculus I sims
- * (Limit Explorer, Mean Value Theorem, Riemann Sum Builder, Related Rates). Keep the
- * copies identical apart from the sim prefix in the imports: fix a bug here, then
- * copy the file into the other three sims.
+ * Canonical lesson scaffold shared, file for file, by the Calculus sims
+ * (Limit Explorer, Mean Value Theorem, Riemann Sum Builder, Related Rates, Slope
+ * Fields). Keep the copies identical apart from the sim prefix in the imports: fix a
+ * bug here, then copy the file into the other four sims.
  *
  * It provides a titled screen with a plot on the left, a control panel on the
  * right and notes under the plot, plus small control factories (combo box,
