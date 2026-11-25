@@ -45,7 +45,7 @@ import {
   RectangularRadioButtonGroup,
 } from "scenerystack/sun";
 import Colors from "../RiemannSumBuilderColors.js";
-import { SCREEN_VIEW_MARGIN } from "../RiemannSumBuilderConstants.js";
+import { LAYOUT as layout, SCREEN_VIEW_MARGIN } from "../RiemannSumBuilderConstants.js";
 import {
   RIEMANN_SUM_BUILDER_COMBO_BOX_OPTIONS as COMBO_BOX_OPTIONS,
   FLAT_PANEL_PUSH_BUTTON_OPTIONS,
@@ -57,7 +57,6 @@ import { RiemannSumBuilderPanel } from "./RiemannSumBuilderPanel.js";
 type StringSource = string | ReadOnlyProperty<string>;
 type Paint = Rectangle["fill"];
 type Domain = readonly [number, number, number, number];
-const layout = { inset: 32, gap: 24, plotWidth: 610, plotHeight: 360, panelWidth: 320, top: 107 };
 
 /** @public */
 export function computed(properties: readonly TReadOnlyProperty<unknown>[], calculate: () => string) {
@@ -700,7 +699,7 @@ export class LessonView extends ScreenView {
 
   protected finish(controls: Node, notes: Node, reset: () => void): void {
     const panelContent = new Node({
-      children: [new Rectangle(0, 0, layout.panelWidth, 430, { pickable: false }), controls],
+      children: [new Rectangle(0, 0, layout.panelWidth, layout.panelHeight, { pickable: false }), controls],
     });
     controls.left = 15;
     controls.top = 15;
@@ -711,7 +710,7 @@ export class LessonView extends ScreenView {
       top: layout.top,
     });
     notes.left = layout.inset;
-    notes.top = layout.top + this.plot.heightInPixels + 14;
+    notes.top = layout.top + this.plot.heightInPixels + layout.notesGap;
     const resetButton = new ResetAllButton({
       ...FLAT_RESET_ALL_BUTTON_OPTIONS,
       listener: reset,

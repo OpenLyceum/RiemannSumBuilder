@@ -1,6 +1,17 @@
 import { BooleanProperty, NumberProperty, Property } from "scenerystack/axon";
 import { dotRandom, Range, roundSymmetric, toFixed } from "scenerystack/dot";
 import type { TModel } from "scenerystack/joist";
+import {
+  BOUND_STEP as boundStep,
+  knotRange,
+  KNOT_SPACING as knotSpacing,
+  KNOT_STEP as knotStep,
+  maximumCount,
+  maximumPower,
+  MINIMUM_INTERVAL as minimumInterval,
+  MINIMUM_WIDTH as minimumWidth,
+  CHALLENGE_TOLERANCES as tolerances,
+} from "../../RiemannSumBuilderConstants.js";
 
 export const functions = ["square", "line", "arch", "sine", "exp", "reciprocal", "root", "cubic", "custom"] as const;
 export type Integrand = (typeof functions)[number];
@@ -100,20 +111,9 @@ export const library: Readonly<Record<Exclude<Integrand, "custom">, FunctionEntr
   },
 };
 
-const minimumWidth = 0.01;
-/** The bounds stay at least this far apart. */
-const minimumInterval = 0.2;
-/** Dragged bounds snap to multiples of this. */
-const boundStep = 0.05;
-export const maximumPower = 7;
-export const maximumCount = 64;
+export { knotRange, knotXs, maximumCount, maximumPower } from "../../RiemannSumBuilderConstants.js";
 
-/** The custom integrand passes through these points, one above each x in knotXs. */
-export const knotXs = [0, 0.5, 1, 1.5, 2] as const;
 const customBounds = [0, 2] as const;
-export const knotRange = new Range(-1.2, 4.3);
-const knotSpacing = 0.5;
-const knotStep = 0.05;
 
 /**
  * Second derivatives of the natural cubic spline through equally spaced
@@ -275,7 +275,6 @@ export type Challenge = {
   readonly tolerance: number;
 };
 export type Verdict = "correct" | "tooFew" | "tooMany";
-const tolerances = [0.1, 0.01, 0.001] as const;
 
 /** The smallest refinement power whose error is under the tolerance, or null if none up to the maximum. */
 /** @internal Directly tested numerical helper. */
